@@ -2952,8 +2952,17 @@ static struct power_supply_desc usb_psy_desc = {
 	.num_properties		= ARRAY_SIZE(usb_props),
 	.get_property		= usb_psy_get_prop,
 	.set_property		= usb_psy_set_prop,
-	.usb_types		= usb_psy_supported_types,
-	.num_usb_types		= ARRAY_SIZE(usb_psy_supported_types),
+	/* mainline: a bitmask of the types in usb_psy_supported_types[] */
+	.usb_types		= BIT(POWER_SUPPLY_USB_TYPE_UNKNOWN) |
+				  BIT(POWER_SUPPLY_USB_TYPE_SDP) |
+				  BIT(POWER_SUPPLY_USB_TYPE_DCP) |
+				  BIT(POWER_SUPPLY_USB_TYPE_CDP) |
+				  BIT(POWER_SUPPLY_USB_TYPE_ACA) |
+				  BIT(POWER_SUPPLY_USB_TYPE_C) |
+				  BIT(POWER_SUPPLY_USB_TYPE_PD) |
+				  BIT(POWER_SUPPLY_USB_TYPE_PD_DRP) |
+				  BIT(POWER_SUPPLY_USB_TYPE_PD_PPS) |
+				  BIT(POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID),
 	.property_is_writeable	= usb_psy_prop_is_writeable,
 };
 
@@ -3364,7 +3373,7 @@ static int battery_chg_init_psy(struct battery_chg_dev *bcdev)
 	int rc;
 
 	psy_cfg.drv_data = bcdev;
-	psy_cfg.of_node = bcdev->dev->of_node;
+	psy_cfg.fwnode = dev_fwnode(bcdev->dev);
 	bcdev->psy_list[PSY_TYPE_BATTERY].psy =
 		devm_power_supply_register(bcdev->dev, &batt_psy_desc,
 						&psy_cfg);
@@ -12832,7 +12841,7 @@ error:
 	return rc;
 }
 
-static int battery_chg_remove(struct platform_device *pdev)
+static void battery_chg_remove(struct platform_device *pdev)
 {
 	struct battery_chg_dev *bcdev = platform_get_drvdata(pdev);
 	int rc;
@@ -12852,14 +12861,12 @@ static int battery_chg_remove(struct platform_device *pdev)
 	rc = pmic_glink_unregister_client(bcdev->client);
 	if (rc < 0) {
 		pr_err("Error unregistering from pmic_glink, rc=%d\n", rc);
-		return rc;
+		return;
 	}
 
 #if IS_ENABLED(CONFIG_OPLUS_CHG_TEST_KIT)
 	oplus_test_kit_unregister();
 #endif
-
-	return 0;
 }
 
 #ifdef OPLUS_FEATURE_CHG_BASIC

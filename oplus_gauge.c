@@ -591,7 +591,7 @@ void oplus_gauge_init(struct oplus_gauge_chip *chip)
 }
 EXPORT_SYMBOL(oplus_gauge_init);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)) && IS_ENABLED(CONFIG_OPLUS_CHARGER_MTK)
 void oplus_mtk_plat_gauge_init(void)
 {
 	g_gauge_chip = oplus_mtk_gauge_init();

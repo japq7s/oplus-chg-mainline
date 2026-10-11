@@ -823,3 +823,4 @@ module_exit(oplus_chg_class_exit);
 MODULE_DESCRIPTION("oplus charge management subsystem");
 MODULE_AUTHOR("Nick Hu <nick.hu>");
 MODULE_LICENSE("GPL");
+MODULE_IMPORT_NS("IIO_CONSUMER");

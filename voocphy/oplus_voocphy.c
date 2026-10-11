@@ -4877,7 +4877,7 @@ enum hrtimer_restart oplus_voocphy_monitor_base_timer(struct hrtimer* time)
 			}
 		}
 	}
-	hrtimer_forward(&chip->monitor_btimer,chip->monitor_btimer.base->get_time(),chip->moniotr_kt);
+	hrtimer_forward(&chip->monitor_btimer,hrtimer_cb_get_time(&chip->monitor_btimer),chip->moniotr_kt);
 
 	return HRTIMER_RESTART;
 }
@@ -7135,7 +7135,6 @@ static struct battery_log_ops battlog_voocphy_ops = {
 
 void oplus_voocphy_init(struct oplus_voocphy_manager *chip)
 {
-	struct irq_desc *desc;
 	struct cpumask current_mask;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0) ||  IS_ENABLED(CONFIG_QGKI))
 	cpumask_var_t cpu_highcap_mask;
@@ -7165,9 +7164,12 @@ void oplus_voocphy_init(struct oplus_voocphy_manager *chip)
 #endif
 	INIT_DELAYED_WORK(&(chip->recovery_system_work), oplus_voocphy_recovery_system_work);
 	INIT_WORK(&(chip->first_ask_batvol_work), oplus_voocphy_first_ask_batvol_work);
-	desc = irq_to_desc(chip->irq);
-	if (desc == NULL) {
-		voocphy_info("%s desc null\n", __func__);
+	/*
+	 * mainline: irq_to_desc() is not exported. The irq thread follows the
+	 * affinity of its interrupt, so move the interrupt instead of the thread.
+	 */
+	if (chip->irq <= 0) {
+		voocphy_info("%s no irq\n", __func__);
 		return;
 	}
 
@@ -7178,7 +7180,7 @@ void oplus_voocphy_init(struct oplus_voocphy_manager *chip)
 	cpumask_setall(&current_mask);
 	cpumask_and(&current_mask, cpu_online_mask, &current_mask);
 #endif
-	ret = set_cpus_allowed_ptr(desc->action->thread, &current_mask);
+	ret = irq_set_affinity(chip->irq, &current_mask);
 	/*pr_err("set_cpus_allowed_ptr =%lu ret = %d\n", current_mask, ret);*/
 	g_voocphy_chip = chip;
 
