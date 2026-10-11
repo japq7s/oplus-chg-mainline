@@ -1,0 +1,3 @@
+# Mainline compatibility for the OPLUS charger
+obj-m += oplus_mainline_compat.o
+oplus_mainline_compat-y := oplus_pmic_glink.o oplus_dwc3_hooks.o
