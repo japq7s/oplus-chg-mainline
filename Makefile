@@ -39,3 +39,6 @@ obj-$(CONFIG_OPLUS_I2C_RST_NOTIFY) += gauge_i2c_rst/
 ifdef CONFIG_OPLUS_PD_EXT_SUPPORT
 obj-$(CONFIG_TCPC_CLASS) += pd_ext/
 endif
+
+obj-m += bsp/
+obj-m += compat/
