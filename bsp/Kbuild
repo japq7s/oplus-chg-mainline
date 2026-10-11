@@ -1,0 +1,9 @@
+# OPLUS BSP modules the charger depends on (bootloader command line
+# parameters, project information from SMEM). Same split as on Android.
+obj-m += oplusboot.o
+obj-m += oplus_ftm_mode.o
+obj-m += oplus_charger_present.o
+obj-m += buildvariant.o
+obj-m += boot_mode.o
+obj-m += oplus_bsp_boot_projectinfo.o
+oplus_bsp_boot_projectinfo-y := oplus_project.o
