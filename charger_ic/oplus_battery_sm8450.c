@@ -12511,7 +12511,7 @@ static struct battery_log_ops battlog_buck_ic_ops = {
 	.dump_log_content = buck_ic_dump_log_data,
 };
 
-static int battery_chg_probe(struct platform_device *pdev)
+static int __battery_chg_probe(struct platform_device *pdev)
 {
 #ifdef OPLUS_FEATURE_CHG_BASIC
 	struct oplus_gauge_chip *gauge_chip;
@@ -12838,6 +12838,29 @@ error:
 	complete(&bcdev->ack);
 	pmic_glink_unregister_client(bcdev->client);
 	unregister_reboot_notifier(&bcdev->reboot_notifier);
+	return rc;
+}
+
+/*
+ * A failed attempt, usually -EPROBE_DEFER while pmic_glink is not up yet,
+ * frees its devm allocations, but the gauge and charger chips are already
+ * published in globals by then. The next attempt found a "registered" gauge
+ * and called through freed memory (NULL pointer oopses in battery_psy_get_prop
+ * and oplus_chg_init on mainline). Unpublish them again.
+ */
+static int battery_chg_probe(struct platform_device *pdev)
+{
+	bool gauge_was_null = oplus_gauge_check_chip_is_null();
+	struct oplus_chg_chip *chip_before = g_oplus_chip;
+	int rc;
+
+	rc = __battery_chg_probe(pdev);
+	if (rc) {
+		if (gauge_was_null)
+			oplus_gauge_init(NULL);
+		g_oplus_chip = chip_before;
+	}
+
 	return rc;
 }
 
