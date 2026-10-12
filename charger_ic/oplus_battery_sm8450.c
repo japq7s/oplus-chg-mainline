@@ -10753,6 +10753,7 @@ static int fg_bq27541_get_battery_soc(void)
 	int rc = 0;
 	int prop_id = 0;
 	static int soc = 50;
+	static bool soc_read;
 	struct battery_chg_dev *bcdev = NULL;
 	struct psy_state *pst = NULL;
 	struct oplus_chg_chip *chip = g_oplus_chip;
@@ -10769,6 +10770,17 @@ static int fg_bq27541_get_battery_soc(void)
 		return soc;
 	}
 
+	/*
+	 * battery_chg_write() "succeeds" without asking the ADSP while
+	 * pmic_glink is down, leaving the property at 0. On mainline the
+	 * charger probes before the ADSP charger service is up, and the UI
+	 * state of charge was initialised from that 0 and then crept up to
+	 * the real value. Report no value until the first real reading;
+	 * oplus_chg_get_battery_data() retries until it gets one.
+	 */
+	if (atomic_read(&bcdev->state) == PMIC_GLINK_STATE_DOWN)
+		return soc_read ? soc : -1;
+
 	prop_id = get_property_id(pst, POWER_SUPPLY_PROP_CAPACITY);
 	rc = read_property_id(bcdev, pst, prop_id);
 	if (rc < 0) {
@@ -10776,6 +10788,7 @@ static int fg_bq27541_get_battery_soc(void)
 		return soc;
 	}
 	soc = DIV_ROUND_CLOSEST(pst->prop[prop_id], 100);
+	soc_read = true;
 
 	return soc;
 }
