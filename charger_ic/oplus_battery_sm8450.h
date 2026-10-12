@@ -298,6 +298,13 @@ enum wireless_property_id {
 	WLS_PROP_MAX,
 };
 
+/*
+ * The ADSP reports USB_ADAP_TYPE in the Android numbering: APPLE_BRICK_ID is 9
+ * there (mainline added PD_SPR_AVS and PD_PPS_SPR_AVS before it), OPLUS adds
+ * POWER_SUPPLY_USB_TYPE_PD_SDP = 17 and Qualcomm the HVDCP types below.
+ */
+#define ADSP_USB_TYPE_APPLE_BRICK_ID	9
+
 enum {
 	QTI_POWER_SUPPLY_USB_TYPE_HVDCP = 0x80,
 	QTI_POWER_SUPPLY_USB_TYPE_HVDCP_3,

@@ -2020,7 +2020,7 @@ static void battery_chg_update_usb_type_work(struct work_struct *work)
 		usb_psy_desc.type = POWER_SUPPLY_TYPE_USB;
 		break;
 	case POWER_SUPPLY_USB_TYPE_DCP:
-	case POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID:
+	case ADSP_USB_TYPE_APPLE_BRICK_ID:
 	case QTI_POWER_SUPPLY_USB_TYPE_HVDCP:
 	case QTI_POWER_SUPPLY_USB_TYPE_HVDCP_3:
 	case QTI_POWER_SUPPLY_USB_TYPE_HVDCP_3P5:
@@ -2700,6 +2700,29 @@ int oplus_set_bcc_curr_to_voocphy(int bcc_curr)
 #define VBUS_VOTAGE_3000MV	3000
 #define BATT_TEMP_70C		700
 #endif
+/*
+ * The driver compares the raw ADSP USB_ADAP_TYPE values (see
+ * ADSP_USB_TYPE_APPLE_BRICK_ID); only the sysfs usb_type is translated, an
+ * untranslated value made the power supply core warn on every uevent read.
+ */
+static int adsp_usb_type_to_mainline(int type)
+{
+	switch (type) {
+	case POWER_SUPPLY_USB_TYPE_UNKNOWN ... POWER_SUPPLY_USB_TYPE_PD_PPS:
+		return type;
+	case ADSP_USB_TYPE_APPLE_BRICK_ID:
+		return POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID;
+	case POWER_SUPPLY_USB_TYPE_PD_SDP:
+		return POWER_SUPPLY_USB_TYPE_PD;
+	case QTI_POWER_SUPPLY_USB_TYPE_HVDCP:
+	case QTI_POWER_SUPPLY_USB_TYPE_HVDCP_3:
+	case QTI_POWER_SUPPLY_USB_TYPE_HVDCP_3P5:
+		return POWER_SUPPLY_USB_TYPE_DCP;
+	default:
+		return POWER_SUPPLY_USB_TYPE_UNKNOWN;
+	}
+}
+
 static int usb_psy_get_prop(struct power_supply *psy,
 		enum power_supply_property prop,
 		union power_supply_propval *pval)
@@ -2774,6 +2797,8 @@ static int usb_psy_get_prop(struct power_supply *psy,
 	pval->intval = pst->prop[prop_id];
 	if (prop == POWER_SUPPLY_PROP_TEMP)
 		pval->intval = DIV_ROUND_CLOSEST((int)pval->intval, 10);
+	if (prop == POWER_SUPPLY_PROP_USB_TYPE)
+		pval->intval = adsp_usb_type_to_mainline(pval->intval);
 
 	if (prop == POWER_SUPPLY_PROP_VOLTAGE_NOW) {
 		if (is_ext_mp2650_chg_ops() &&
