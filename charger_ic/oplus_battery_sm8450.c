@@ -3034,7 +3034,6 @@ static int battery_psy_get_prop(struct power_supply *psy,
 	bool wls_online = false;
 	static int pre_batt_status;
 	int rc = 0;
-	unsigned long cur_chg_time = 0;
 #endif
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
@@ -3155,7 +3154,12 @@ static int battery_psy_get_prop(struct power_supply *psy,
 		pval->intval = chip->batt_exist;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_TYPE:
-		pval->intval = chip->charger_type;
+		/*
+		 * Mainline ABI: the downstream value is the OPLUS charger type,
+		 * not a POWER_SUPPLY_CHARGE_TYPE_*.
+		 */
+		pval->intval = chip->prop_status == POWER_SUPPLY_STATUS_CHARGING ?
+			POWER_SUPPLY_CHARGE_TYPE_STANDARD : POWER_SUPPLY_CHARGE_TYPE_NONE;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		if(chip->vooc_show_ui_soc_decimal == true && chip->decimal_control) {
@@ -3175,13 +3179,14 @@ static int battery_psy_get_prop(struct power_supply *psy,
 		}
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
-		pval->intval = chip->limits.charger_hv_thr;
+		/* downstream: the charger over-voltage threshold, not an OCV */
+		rc = -ENODATA;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		pval->intval = chip->batt_volt * 1000;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-		pval->intval = chip->limits.temp_normal_vfloat_mv;
+		pval->intval = chip->limits.temp_normal_vfloat_mv * 1000;
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		if (chip->voocphy_support == ADSP_VOOCPHY || chip->read_by_reg == 1) {
@@ -3189,6 +3194,12 @@ static int battery_psy_get_prop(struct power_supply *psy,
 		} else {
 			pval->intval = oplus_gauge_get_prev_batt_current();
 		}
+		/*
+		 * Mainline ABI: uA, positive while charging. The OPLUS gauge
+		 * reports mA, negative while charging; upower took the phone for
+		 * discharging on the charger.
+		 */
+		pval->intval *= -1000;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		pval->intval = bcdev->curr_thermal_level;
@@ -3234,26 +3245,18 @@ static int battery_psy_get_prop(struct power_supply *psy,
 		else
 			pval->intval = chip->time_to_full;
 		break;
+	/* downstream: constants (3600 s, 0 W), no data on mainline */
 	case POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG:
-		pval->intval = 3600;
-		break;
 	case POWER_SUPPLY_PROP_POWER_NOW:
 	case POWER_SUPPLY_PROP_POWER_AVG:
-		pval->intval = 0;
+		rc = -ENODATA;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_NOW:
-		pval->intval = chip->charger_volt;
-		if (oplus_vooc_get_fastchg_started() == true && (chip->vbatt_num == 2)
-				&& oplus_vooc_get_fast_chg_type() != CHARGER_SUBTYPE_FASTCHG_VOOC) {
-			pval->intval = 10000;
-		}
-
-		if (qpnp_is_power_off_charging() == true
-			&& (oplus_chg_get_curr_time_ms(&cur_chg_time) < 12000)
-			&& oplus_vooc_get_fastchg_started() != true) {
-			pval->intval = 5000;
-			chg_err("qpnp_is_power_off_charging power off charge here  5000");
-		}
+		/*
+		 * Mainline ABI: the remaining charge in uAh. Downstream reports
+		 * the charger voltage here for the Android framework.
+		 */
+		pval->intval = chip->batt_rm * 1000;
 		rc = 0;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MIN:
