@@ -440,14 +440,20 @@ static inline void getnstimeofday(struct timespec *ts)
 
 #define OPLUS_PDQC_5VTO9V 1
 #define OPLUS_PDQC_9VTO5V 2
+/*
+ * Mainline: debug level for all three. The driver logs its periodic state
+ * (several lines a second, most through chg_err) and the downstream levels
+ * put all of it on the console, which slowed boot and shutdown. The messages
+ * stay in the kernel log.
+ */
 #define chg_info(fmt, ...)                                                     \
-	printk(KERN_INFO "[OPLUS_CHG][%s]" fmt, __func__, ##__VA_ARGS__)
+	printk(KERN_DEBUG "[OPLUS_CHG][%s]" fmt, __func__, ##__VA_ARGS__)
 
 #define chg_debug(fmt, ...)                                                    \
-	printk(KERN_NOTICE "[OPLUS_CHG][%s]" fmt, __func__, ##__VA_ARGS__)
+	printk(KERN_DEBUG "[OPLUS_CHG][%s]" fmt, __func__, ##__VA_ARGS__)
 
 #define chg_err(fmt, ...)                                                      \
-	printk(KERN_ERR "[OPLUS_CHG][%s]" fmt, __func__, ##__VA_ARGS__)
+	printk(KERN_DEBUG "[OPLUS_CHG][%s]" fmt, __func__, ##__VA_ARGS__)
 
 enum {
 	PD_INACTIVE = 0,
