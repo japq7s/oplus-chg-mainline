@@ -1,13 +1,24 @@
 #!/bin/sh
 # Build oplus_chg (v1) as an external module against a mainline kernel tree.
-#   KSRC=<kernel source> KOUT=<kernel build dir> ./build-mainline.sh [make args]
+#   KSRC=<kernel source> [KOUT=<kernel build dir>] ./build-mainline.sh \
+#	[make variables] [targets, default: modules]
+# KOUT is only needed when the kernel was built with O=.
 # Configuration of the realme GT Neo5 150W (senna), as in the OPLUS GKI config
 # for waipio, without the v2 framework: senna has no /soc/oplus_chg_core node
 # with oplus,chg_framework_v2, so only v1 is used on this phone.
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 KSRC=${KSRC:?KSRC=kernel source}
-KOUT=${KOUT:?KOUT=kernel build directory}
+KOUT=${KOUT:-$KSRC}
+
+# without an explicit target (an argument that is not VAR=value) build modules
+target=modules
+for a in "$@"; do
+	case "$a" in
+	*=*) ;;
+	*) target= ;;
+	esac
+done
 
 CHG_CFG="CONFIG_OPLUS_CHARGER=y CONFIG_OPLUS_CHG=m \
 CONFIG_OPLUS_SMART_CHARGE=y CONFIG_OPLUS_SM8450_CHARGER=y \
@@ -28,4 +39,4 @@ KCF="$KCF -DCONFIG_OPLUS_CHG_MODULE=1 -DOPLUS_FEATURE_CHG_BASIC \
 
 # shellcheck disable=SC2086
 exec make -C "$KSRC" O="$KOUT" ARCH=arm64 M="$here" \
-	KCFLAGS="$KCF" $CHG_CFG "$@" modules
+	KCFLAGS="$KCF" $CHG_CFG "$@" $target
