@@ -16,6 +16,15 @@
 #include "oplus_chg_core.h"
 #include "oplus_chg_comm.h"
 
+/*
+ * The charger reads the RTC to measure the time spent in suspend. Kernels
+ * that do not set the system time from the RTC (RTC_HCTOSYS=n, e.g. when the
+ * RTC cannot be set by Linux) have no device name for it: use the first RTC.
+ */
+#ifndef CONFIG_RTC_HCTOSYS_DEVICE
+#define CONFIG_RTC_HCTOSYS_DEVICE "rtc0"
+#endif
+
 #if __and(IS_MODULE(CONFIG_OPLUS_CHG), IS_MODULE(CONFIG_OPLUS_CHG_V2))
 #include "oplus_chg_symbol.h"
 #endif
